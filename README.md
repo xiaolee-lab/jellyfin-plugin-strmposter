@@ -24,7 +24,7 @@
 3. 点击 **+** 添加存储库
 4. 填写：
    - 存储库名称：`StrmPoster`
-   - 存储库 URL：`https://raw.githubusercontent.com/xiaolee-lab/jellyfin-plugin-strmposter/main/manifest.json`
+   - 存储库 URL：`https://raw.githubusercontent.com/xiaolee-lab/jellyfin-plugin-strmposter/refs/heads/main/manifest.json`
 5. 保存后进入 **目录** 标签
 6. 找到 `StrmPoster` 并点击安装
 7. 重启 Jellyfin
