@@ -5,8 +5,8 @@
         "description": "Media library thumbnail extraction tool - Automatically extract video keyframes as thumbnails for .strm streaming files",
         "overview": "Automatically extract video keyframes as thumbnails for .strm files, support batch extraction and scheduled tasks",
         "owner": "xiaolee-lab",
-        "category": "Metadata",
-        "imageUrl": "https://raw.githubusercontent.com/xiaolee-lab/jellyfin-plugin-strmposter/main/thumb.jpg",
+        "category": "General",
+        "imageUrl": "https://github.com/xiaolee-lab/jellyfin-plugin-strmposter/blob/main/thumb.jpg?raw=true",
         "versions": [
             {
                 "changelog": "v1.0.2",
