@@ -85,26 +85,6 @@ dotnet build -c Release
 # bin/Release/net9.0/StrmPosterForJellyfin.dll
 ```
 
-### 发布新版本
-
-使用一键发布脚本：
-
-```powershell
-# 在项目根目录运行
-.\release.ps1 -Version "1.0.0"
-```
-
-脚本会自动：
-1. 构建项目
-2. 打包 ZIP 文件
-3. 计算 MD5 校验值
-4. 更新 manifest.json
-
-然后：
-1. 在 GitHub 创建 Release
-2. 上传生成的 ZIP 文件
-3. 提交并推送更新后的 manifest.json
-
 ## 📁 项目结构
 
 ```
@@ -119,7 +99,6 @@ StrmPosterForJellyfin/
 │   └── configPage.html            # 配置页面
 ├── thumb.jpg                      # 插件 Logo
 ├── manifest.json                  # 插件清单
-├── release.ps1                    # 一键发布脚本
 └── README.md                      # 说明文档
 ```
 
