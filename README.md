@@ -69,7 +69,7 @@
 ### 环境要求
 
 - .NET 9.0 SDK
-- Jellyfin 10.8.0+
+- Jellyfin 10.11.8
 
 ### 本地构建
 
@@ -104,7 +104,7 @@ StrmPosterForJellyfin/
 
 ## 🤝 贡献
 
-欢迎提交 Issue 和 Pull Request！
+<br />
 
 ## 📄 许可证
 
@@ -114,3 +114,4 @@ StrmPosterForJellyfin/
 
 - [JellySTRMprobe](https://github.com/firestaerter3/JellySTRMprobe) - strm视频信息
 - [StrmAssistant](https://github.com/sjtuross/StrmAssistant) - strm视频信息
+
