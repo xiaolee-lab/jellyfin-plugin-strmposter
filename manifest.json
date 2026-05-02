@@ -8,28 +8,12 @@
     "imageUrl":  "https://raw.githubusercontent.com/xiaolee-lab/jellyfin-plugin-strmposter/main/thumb.jpg",
     "versions":  [
                      {
-                         "changelog":  "- Improved thumbnail extraction\n- Bug fixes and optimizations",
-                         "version":  "1.0.2.0.0.0",
-                         "checksum":  "f0907115053d8a32e05fbffbc2797cf1",
-                         "timestamp":  "2026-05-02T09:01:38Z",
-                         "targetAbi":  "10.8.0.0",
-                         "sourceUrl":  "https://github.com/xiaolee-lab/jellyfin-plugin-strmposter/archive/refs/tags/v1.0.2.0.0.zip"
-                     },
-                     {
-                         "changelog":  "- Improved thumbnail extraction\n- Bug fixes and optimizations",
-                         "version":  "1.0.1.0.0",
-                         "checksum":  "f0907115053d8a32e05fbffbc2797cf1",
-                         "timestamp":  "2026-05-02T09:00:28Z",
-                         "targetAbi":  "10.8.0.0",
-                         "sourceUrl":  "https://github.com/xiaolee-lab/jellyfin-plugin-strmposter/archive/refs/tags/v1.0.1.0.zip"
-                     },
-                     {
+                         "changelog":  "v1.0.0",
                          "version":  "1.0.0.0",
-                         "changelog":  "Initial release\n- Support .strm file thumbnail extraction\n- Support image provider\n- Support scheduled tasks\n- Support library selection",
-                         "targetAbi":  "10.8.0.0",
-                         "sourceUrl":  "https://github.com/xiaolee-lab/jellyfin-plugin-strmposter/archive/refs/tags/v1.0.0.zip",
                          "checksum":  "f0907115053d8a32e05fbffbc2797cf1",
-                         "timestamp":  "2026-05-02T08:55:52Z"
+                         "timestamp":  "2026-05-02T09:07:58Z",
+                         "targetAbi":  "10.8.0.0",
+                         "sourceUrl":  "https://github.com/xiaolee-lab/jellyfin-plugin-strmposter/archive/refs/tags/v1.0.0.zip"
                      }
                  ]
 }
