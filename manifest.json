@@ -1,37 +1,43 @@
-[
-    {
-        "guid": "b7e23c8a-9f5d-4c8b-91a2-3d6e7f8c1b4a",
-        "name": "StrmPoster",
-        "description": "Media library thumbnail extraction tool - Automatically extract video keyframes as thumbnails for .strm streaming files",
-        "overview": "Automatically extract video keyframes as thumbnails for .strm files, support batch extraction and scheduled tasks",
-        "owner": "xiaolee-lab",
-        "category": "General",
-        "imageUrl": "https://github.com/xiaolee-lab/jellyfin-plugin-strmposter/blob/main/thumb.jpg?raw=true",
-        "versions": [
-            {
-                "changelog": "v1.0.2",
-                "version": "1.0.2",
-                "checksum": "b194d633eb0317215bb5dad40865de83",
-                "timestamp": "2026-05-03T08:00:00Z",
-                "targetAbi": "10.11.0.0",
-                "sourceUrl": "https://github.com/xiaolee-lab/jellyfin-plugin-strmposter/releases/download/v1.0.2/StrmPosterForJellyfin.zip"
-            },
-            {
-                "changelog": "v1.0.1",
-                "version": "1.0.1",
-                "checksum": "06f11ded63fd3e75440551b76ada2954",
-                "timestamp": "2026-05-02T16:01:59Z",
-                "targetAbi": "10.11.0.0",
-                "sourceUrl": "https://github.com/xiaolee-lab/jellyfin-plugin-strmposter/releases/download/v1.0.1/StrmPosterForJellyfin.zip"
-            },
-            {
-                "changelog": "v1.0.0",
-                "version": "1.0.0",
-                "checksum": "f0907115053d8a32e05fbffbc2797cf1",
-                "timestamp": "2026-05-02T09:19:38Z",
-                "targetAbi": "10.11.0.0",
-                "sourceUrl": "https://github.com/xiaolee-lab/jellyfin-plugin-strmposter/releases/download/v1.0.0/StrmPosterForJellyfin.zip"
-            }
-        ]
-    }
-]
+{
+    "guid":  "b7e23c8a-9f5d-4c8b-91a2-3d6e7f8c1b4a",
+    "name":  "StrmPoster",
+    "description":  "Media library thumbnail extraction tool - Automatically extract video keyframes as thumbnails for .strm streaming files",
+    "overview":  "Automatically extract video keyframes as thumbnails for .strm files, support batch extraction and scheduled tasks",
+    "owner":  "xiaolee-lab",
+    "category":  "General",
+    "imageUrl":  "https://github.com/xiaolee-lab/jellyfin-plugin-strmposter/blob/main/thumb.jpg?raw=true",
+    "versions":  [
+                     {
+                         "changelog":  "v1.0.3",
+                         "version":  "1.0.3",
+                         "checksum":  "3c4ae1ea999015bd1bc225d527851dad",
+                         "timestamp":  "2026-05-02T16:58:20Z",
+                         "targetAbi":  "10.11.0.0",
+                         "sourceUrl":  "https://github.com/xiaolee-lab/jellyfin-plugin-strmposter/releases/download/v1.0.3/StrmPosterForJellyfin.zip"
+                     },
+                     {
+                         "changelog":  "v1.0.2",
+                         "version":  "1.0.2",
+                         "checksum":  "b194d633eb0317215bb5dad40865de83",
+                         "timestamp":  "2026-05-03T08:00:00Z",
+                         "targetAbi":  "10.11.0.0",
+                         "sourceUrl":  "https://github.com/xiaolee-lab/jellyfin-plugin-strmposter/releases/download/v1.0.2/StrmPosterForJellyfin.zip"
+                     },
+                     {
+                         "changelog":  "v1.0.1",
+                         "version":  "1.0.1",
+                         "checksum":  "06f11ded63fd3e75440551b76ada2954",
+                         "timestamp":  "2026-05-02T16:01:59Z",
+                         "targetAbi":  "10.11.0.0",
+                         "sourceUrl":  "https://github.com/xiaolee-lab/jellyfin-plugin-strmposter/releases/download/v1.0.1/StrmPosterForJellyfin.zip"
+                     },
+                     {
+                         "changelog":  "v1.0.0",
+                         "version":  "1.0.0",
+                         "checksum":  "f0907115053d8a32e05fbffbc2797cf1",
+                         "timestamp":  "2026-05-02T09:19:38Z",
+                         "targetAbi":  "10.11.0.0",
+                         "sourceUrl":  "https://github.com/xiaolee-lab/jellyfin-plugin-strmposter/releases/download/v1.0.0/StrmPosterForJellyfin.zip"
+                     }
+                 ]
+}
