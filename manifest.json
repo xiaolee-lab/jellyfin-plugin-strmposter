@@ -1,21 +1,27 @@
-﻿[
-    {
-        "guid": "a1b2c3d4-e5f6-4a5b-8c9d-0e1f2a3b4c5d",
-        "name": "StrmPoster",
-        "description": "Media library thumbnail extraction tool - Automatically extract video keyframes as thumbnails for .strm streaming files",
-        "overview": "Automatically extract video keyframes as thumbnails for .strm files, support batch extraction and scheduled tasks",
-        "owner": "xiaolee-lab",
-        "category": "Metadata",
-        "imageUrl": "https://raw.githubusercontent.com/xiaolee-lab/jellyfin-plugin-strmposter/main/thumb.jpg",
-        "versions": [
-            {
-                "version": "1.0.0.0",
-                "changelog": "Initial release\n- Support .strm file thumbnail extraction\n- Support image provider\n- Support scheduled tasks\n- Support library selection",
-                "targetAbi": "10.8.0.0",
-                "sourceUrl": "https://github.com/xiaolee-lab/jellyfin-plugin-strmposter/archive/refs/tags/v1.0.0.zip",
-                "checksum": "c2219c2c7e30e139bb4389ee0e3609f6",
-                "timestamp": "2026-05-02T08:25:44Z"
-            }
-        ]
-    }
-]
+{
+    "guid":  "a1b2c3d4-e5f6-4a5b-8c9d-0e1f2a3b4c5d",
+    "name":  "StrmPoster",
+    "description":  "Media library thumbnail extraction tool - Automatically extract video keyframes as thumbnails for .strm streaming files",
+    "overview":  "Automatically extract video keyframes as thumbnails for .strm files, support batch extraction and scheduled tasks",
+    "owner":  "xiaolee-lab",
+    "category":  "Metadata",
+    "imageUrl":  "https://raw.githubusercontent.com/xiaolee-lab/jellyfin-plugin-strmposter/main/thumb.jpg",
+    "versions":  [
+                     {
+                         "changelog":  "- Improved thumbnail extraction\n- Bug fixes and optimizations",
+                         "version":  "1.0.1.0.0",
+                         "checksum":  "f0907115053d8a32e05fbffbc2797cf1",
+                         "timestamp":  "2026-05-02T09:00:28Z",
+                         "targetAbi":  "10.8.0.0",
+                         "sourceUrl":  "https://github.com/xiaolee-lab/jellyfin-plugin-strmposter/archive/refs/tags/v1.0.1.0.zip"
+                     },
+                     {
+                         "version":  "1.0.0.0",
+                         "changelog":  "Initial release\n- Support .strm file thumbnail extraction\n- Support image provider\n- Support scheduled tasks\n- Support library selection",
+                         "targetAbi":  "10.8.0.0",
+                         "sourceUrl":  "https://github.com/xiaolee-lab/jellyfin-plugin-strmposter/archive/refs/tags/v1.0.0.zip",
+                         "checksum":  "f0907115053d8a32e05fbffbc2797cf1",
+                         "timestamp":  "2026-05-02T08:55:52Z"
+                     }
+                 ]
+}
