@@ -1,21 +1,19 @@
-[
-  {
-    "guid": "a1b2c3d4-e5f6-4a5b-8c9d-0e1f2a3b4c5d",
-    "name": "StrmPoster",
-    "description": "媒体库封面提取工具 - 为 .strm 流媒体文件自动提取视频关键帧作为封面图",
-    "overview": "为 .strm 文件自动提取视频关键帧作为封面，支持批量提取和定时任务",
-    "owner": "StrmPoster",
-    "category": "Metadata",
-    "imageUrl": "https://raw.githubusercontent.com/你的用户名/你的仓库名/main/thumb.jpg",
-    "versions": [
-      {
-        "version": "1.0.0.0",
-        "changelog": "初始版本\n- 支持 .strm 文件封面提取\n- 支持图片获取器\n- 支持计划任务\n- 支持媒体库选择",
-        "targetAbi": "10.8.0.0",
-        "sourceUrl": "https://github.com/你的用户名/你的仓库名/releases/download/v1.0.0/StrmPosterForJellyfin.zip",
-        "checksum": "",
-        "timestamp": "2026-05-02T00:00:00Z"
-      }
-    ]
-  }
-]
+﻿{
+    "guid":  "a1b2c3d4-e5f6-4a5b-8c9d-0e1f2a3b4c5d",
+    "name":  "StrmPoster",
+    "description":  "Media library thumbnail extraction tool - Automatically extract video keyframes as thumbnails for .strm streaming files",
+    "overview":  "Automatically extract video keyframes as thumbnails for .strm files, support batch extraction and scheduled tasks",
+    "owner":  "xiaolee-lab",
+    "category":  "Metadata",
+    "imageUrl":  "https://raw.githubusercontent.com/xiaolee-lab/jellyfin-plugin-strmposter/main/thumb.jpg",
+    "versions":  [
+                     {
+                         "version":  "1.0.0.0",
+                         "changelog":  "Initial release\n- Support .strm file thumbnail extraction\n- Support image provider\n- Support scheduled tasks\n- Support library selection",
+                         "targetAbi":  "10.8.0.0",
+                         "sourceUrl":  "https://github.com/xiaolee-lab/jellyfin-plugin-strmposter/releases/download/v1.0.0/StrmPosterForJellyfin.zip",
+                         "checksum":  "ba28fae3d1dbe797c051e0f32608af1c",
+                         "timestamp":  "2026-05-02T08:03:59Z"
+                     }
+                 ]
+}
