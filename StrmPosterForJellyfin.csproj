@@ -1,0 +1,42 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net9.0</TargetFrameworks>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
+    <CopyLocalLockFileAssemblies>True</CopyLocalLockFileAssemblies>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+    <LangVersion>latest</LangVersion>
+    <DefineConstants>JELLYFIN</DefineConstants>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <PublishRepositoryUrl>false</PublishRepositoryUrl>
+    <EmbedUntrackedSources>false</EmbedUntrackedSources>
+    <EnableSourceLink>false</EnableSourceLink>
+    <PackageIcon>thumb.jpg</PackageIcon>
+    <EnableSourceControlManagerQueries>false</EnableSourceControlManagerQueries>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="*.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Configuration\configPage.html" LogicalName="StrmPosterForJellyfin.Configuration.configPage.html" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Jellyfin.Controller" Version="10.11.5">
+      <ExcludeAssets>runtime</ExcludeAssets>
+    </PackageReference>
+    <PackageReference Include="Jellyfin.Model" Version="10.11.5">
+      <ExcludeAssets>runtime</ExcludeAssets>
+    </PackageReference>
+  </ItemGroup>
+  
+
+  <Target Name="PostBuildInfo" AfterTargets="Build">
+    <Message Text="=====================================" Importance="high" />
+    <Message Text="StrmPoster Plugin Build Complete!" Importance="high" />
+    <Message Text="Main DLL: $(TargetPath)" Importance="high" />
+    <Message Text="=====================================" Importance="high" />
+  </Target>
+</Project>

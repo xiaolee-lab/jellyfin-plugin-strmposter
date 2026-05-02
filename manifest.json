@@ -1,0 +1,21 @@
+[
+  {
+    "guid": "a1b2c3d4-e5f6-4a5b-8c9d-0e1f2a3b4c5d",
+    "name": "StrmPoster",
+    "description": "媒体库封面提取工具 - 为 .strm 流媒体文件自动提取视频关键帧作为封面图",
+    "overview": "为 .strm 文件自动提取视频关键帧作为封面，支持批量提取和定时任务",
+    "owner": "StrmPoster",
+    "category": "Metadata",
+    "imageUrl": "https://raw.githubusercontent.com/你的用户名/你的仓库名/main/thumb.jpg",
+    "versions": [
+      {
+        "version": "1.0.0.0",
+        "changelog": "初始版本\n- 支持 .strm 文件封面提取\n- 支持图片获取器\n- 支持计划任务\n- 支持媒体库选择",
+        "targetAbi": "10.8.0.0",
+        "sourceUrl": "https://github.com/你的用户名/你的仓库名/releases/download/v1.0.0/StrmPosterForJellyfin.zip",
+        "checksum": "",
+        "timestamp": "2026-05-02T00:00:00Z"
+      }
+    ]
+  }
+]

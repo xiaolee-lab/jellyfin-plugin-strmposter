@@ -1,0 +1,198 @@
+<div data-role="page" class="page type-interior pluginConfigurationPage" id="StrmPosterConfigPage">
+    <div data-role="content">
+        <div class="content-primary">
+            <form id="StrmPosterConfigForm">
+                <div class="verticalSection">
+                    <h2>🎬 StrmPoster</h2>
+                    <p>媒体库封面提取工具 - 为 .strm 流媒体文件自动提取视频关键帧作为封面图</p>
+                </div>
+
+                <div class="verticalSection">
+                    <h2>⚙️ 功能设置</h2>
+                    
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label>
+                            <input type="checkbox" id="enableThumbnailExtraction" is="emby-checkbox" />
+                            <span>启用封面提取</span>
+                        </label>
+                    </div>
+
+                    <div class="checkboxContainer checkboxContainer-withDescription" id="forceReExtractContainer" style="margin-top: 8px;">
+                        <label>
+                            <input type="checkbox" id="forceReExtractThumbnail" is="emby-checkbox" />
+                            <span>🔄 强制重新提取所有封面</span>
+                        </label>
+                        <div class="fieldDescription">⚠️ 启用后将重新提取所有媒体的封面（包括已提取过的），下次任务执行后自动关闭</div>
+                    </div>
+                </div>
+
+                <div class="verticalSection">
+                    <h2>📚 媒体库选择</h2>
+                    <div class="fieldDescription">
+                        选择要执行封面提取的媒体库，不选择则处理所有媒体库
+                    </div>
+                    <div id="libraryList" class="paperList" style="max-height: 300px; overflow-y: auto;">
+                    </div>
+                </div>
+
+                <div class="verticalSection">
+                    <h2>⚡ 性能设置</h2>
+                    
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="thumbnailConcurrency">
+                            封面提取并发数
+                        </label>
+                        <input type="number" id="thumbnailConcurrency" is="emby-input" class="emby-input" min="1" max="10" step="1" />
+                        <div class="fieldDescription">
+                            控制封面提取的并发线程数（范围：1-10）<br/>
+                            <strong>默认值：</strong>2<br/>
+                            <strong>注意：</strong>对于流媒体 URL（.strm 文件），过高的并发数可能导致网络拥堵或带宽不足。
+                        </div>
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="thumbnailExtractPositionPercent">
+                            封面提取位置（%）
+                        </label>
+                        <input type="number" id="thumbnailExtractPositionPercent" is="emby-input" class="emby-input" min="5" max="95" step="1" />
+                        <div class="fieldDescription">
+                            从视频的哪个位置提取关键帧（范围：5-95%）<br/>
+                            <strong>默认值：</strong>50%（视频中间）<br/>
+                            <strong>建议：</strong>选择视频中间偏前的位置（30-50%），避免纯黑或纯白的开头结尾画面。
+                        </div>
+                    </div>
+                </div>
+
+                <div class="verticalSection">
+                    <h2>📖 使用说明</h2>
+                    <ul>
+                        <li>在 <strong>控制面板 → 计划任务</strong> 中可以看到 StrmPoster 任务</li>
+                        <li>点击任务右侧的 ▶️ 按钮可以手动执行封面提取</li>
+                        <li>封面命名使用 Jellyfin 标准格式：<code>文件名-poster.jpg</code></li>
+                        <li>封面文件保存在 .strm 文件所在目录</li>
+                        <li><strong>🔄 强制重新提取</strong>：启用后将重新提取所有封面，任务完成后自动关闭</li>
+                    </ul>
+                </div>
+
+                <div>
+                    <button is="emby-button" type="submit" class="raised button-submit block" style="width: 100%; height: 3em; border: none; border-radius: 3px; margin-top: 1em;">
+                        <span>💾 保存</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script type="text/javascript">
+        var StrmPosterConfig = {
+            pluginUniqueId: 'a1b2c3d4-e5f6-4a5b-8c9d-0e1f2a3b4c5d'
+        };
+
+        function toggleForceReExtractVisibility(isEnabled) {
+            const forceContainer = document.getElementById('forceReExtractContainer');
+            if (isEnabled) {
+                forceContainer.style.display = 'block';
+            } else {
+                forceContainer.style.display = 'none';
+            }
+        }
+
+        function loadLibraryList(config) {
+            const enabledLibraryIds = config.EnabledLibraryIds || [];
+            const libraryListEl = document.querySelector('#libraryList');
+            libraryListEl.innerHTML = '<p style="padding: 10px;">正在加载媒体库...</p>';
+
+            ApiClient.getVirtualFolders().then(function (folders) {
+                libraryListEl.innerHTML = '';
+
+                if (!folders || !folders.Items || folders.Items.length === 0) {
+                    libraryListEl.innerHTML = '<p style="padding: 10px;">未找到媒体库</p>';
+                    return;
+                }
+
+                folders.Items.forEach(function (folder) {
+                    const id = folder.ItemId;
+                    const name = folder.Name;
+                    const isEnabled = enabledLibraryIds.includes(id.toString());
+
+                    const div = document.createElement('div');
+                    div.className = 'listItem';
+                    div.style.display = 'flex';
+                    div.style.alignItems = 'center';
+                    div.style.padding = '8px 12px';
+
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.checked = isEnabled;
+                    checkbox.className = 'emby-checkbox';
+                    checkbox.dataset.libraryId = id;
+                    checkbox.id = 'library_' + id;
+
+                    const label = document.createElement('label');
+                    label.htmlFor = 'library_' + id;
+                    label.textContent = name;
+                    label.style.marginLeft = '8px';
+                    label.style.flex = '1';
+
+                    div.appendChild(checkbox);
+                    div.appendChild(label);
+                    libraryListEl.appendChild(div);
+                });
+            }).catch(function (err) {
+                console.error('加载媒体库失败:', err);
+                libraryListEl.innerHTML = '<p style="padding: 10px; color: #ff6b6b;">加载媒体库失败</p>';
+            });
+        }
+
+        document.querySelector('#StrmPosterConfigPage')
+            .addEventListener('pageshow', function() {
+                Dashboard.showLoadingMsg();
+                ApiClient.getPluginConfiguration(StrmPosterConfig.pluginUniqueId).then(function (config) {
+                    const enableCheckbox = document.querySelector('#enableThumbnailExtraction');
+                    const forceCheckbox = document.querySelector('#forceReExtractThumbnail');
+
+                    enableCheckbox.checked = config.EnableThumbnailExtraction !== false;
+                    forceCheckbox.checked = config.ForceReExtractThumbnail === true;
+                    document.querySelector('#thumbnailConcurrency').value = config.ThumbnailConcurrency || 2;
+                    document.querySelector('#thumbnailExtractPositionPercent').value = config.ThumbnailExtractPositionPercent || 50;
+
+                    toggleForceReExtractVisibility(enableCheckbox.checked);
+
+                    enableCheckbox.addEventListener('change', function() {
+                        toggleForceReExtractVisibility(this.checked);
+                    });
+
+                    loadLibraryList(config);
+                    Dashboard.hideLoadingMsg();
+                });
+            });
+
+        document.querySelector('#StrmPosterConfigForm')
+            .addEventListener('submit', function(e) {
+                Dashboard.showLoadingMsg();
+                ApiClient.getPluginConfiguration(StrmPosterConfig.pluginUniqueId).then(function (config) {
+                    config.EnableThumbnailExtraction = document.querySelector('#enableThumbnailExtraction').checked;
+                    config.ForceReExtractThumbnail = document.querySelector('#forceReExtractThumbnail').checked;
+
+                    var thumbnailConcurrencyValue = parseInt(document.querySelector('#thumbnailConcurrency').value) || 2;
+                    config.ThumbnailConcurrency = Math.max(1, Math.min(10, thumbnailConcurrencyValue));
+
+                    var thumbnailPositionValue = parseInt(document.querySelector('#thumbnailExtractPositionPercent').value) || 50;
+                    config.ThumbnailExtractPositionPercent = Math.max(5, Math.min(95, thumbnailPositionValue));
+
+                    const selectedLibraryIds = [];
+                    document.querySelectorAll('#libraryList input[type="checkbox"]:checked').forEach(function(cb) {
+                        selectedLibraryIds.push(cb.dataset.libraryId);
+                    });
+                    config.EnabledLibraryIds = selectedLibraryIds;
+
+                    ApiClient.updatePluginConfiguration(StrmPosterConfig.pluginUniqueId, config).then(function (result) {
+                        Dashboard.processPluginConfigurationUpdateResult(result);
+                    });
+                });
+
+                e.preventDefault();
+                return false;
+            });
+    </script>
+</div>
