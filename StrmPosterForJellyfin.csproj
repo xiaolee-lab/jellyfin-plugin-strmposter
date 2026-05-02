@@ -11,7 +11,6 @@
     <PublishRepositoryUrl>false</PublishRepositoryUrl>
     <EmbedUntrackedSources>false</EmbedUntrackedSources>
     <EnableSourceLink>false</EnableSourceLink>
-    <PackageIcon>thumb.jpg</PackageIcon>
     <EnableSourceControlManagerQueries>false</EnableSourceControlManagerQueries>
   </PropertyGroup>
 
@@ -31,7 +30,6 @@
       <ExcludeAssets>runtime</ExcludeAssets>
     </PackageReference>
   </ItemGroup>
-  
 
   <Target Name="PostBuildInfo" AfterTargets="Build">
     <Message Text="=====================================" Importance="high" />

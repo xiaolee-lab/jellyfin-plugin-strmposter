@@ -1,4 +1,4 @@
-﻿{
+{
     "guid":  "a1b2c3d4-e5f6-4a5b-8c9d-0e1f2a3b4c5d",
     "name":  "StrmPoster",
     "description":  "Media library thumbnail extraction tool - Automatically extract video keyframes as thumbnails for .strm streaming files",
@@ -12,8 +12,8 @@
                          "changelog":  "Initial release\n- Support .strm file thumbnail extraction\n- Support image provider\n- Support scheduled tasks\n- Support library selection",
                          "targetAbi":  "10.8.0.0",
                          "sourceUrl":  "https://github.com/xiaolee-lab/jellyfin-plugin-strmposter/releases/download/v1.0.0/StrmPosterForJellyfin.zip",
-                         "checksum":  "ba28fae3d1dbe797c051e0f32608af1c",
-                         "timestamp":  "2026-05-02T08:03:59Z"
+                         "checksum":  "c2219c2c7e30e139bb4389ee0e3609f6",
+                         "timestamp":  "2026-05-02T08:25:44Z"
                      }
                  ]
 }

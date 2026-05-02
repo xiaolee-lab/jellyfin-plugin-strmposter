@@ -133,5 +133,5 @@ StrmPosterForJellyfin/
 
 ## 🙏 致谢
 
-- [Jellyfin](https://jellyfin.org/) - 开源媒体系统
-- [FFmpeg](https://ffmpeg.org/) - 多媒体处理框架
+- [JellySTRMprobe](https://github.com/firestaerter3/JellySTRMprobe) - strm视频信息
+- [StrmAssistant](https://github.com/sjtuross/StrmAssistant) - strm视频信息
