@@ -19,7 +19,7 @@ namespace StrmPosterForJellyfin
 
         public override string Name => "StrmPoster";
 
-        public override Guid Id => Guid.Parse("a1b2c3d4-e5f6-4a5b-8c9d-0e1f2a3b4c5d");
+        public override Guid Id => Guid.Parse("b7e23c8a-9f5d-4c8b-91a2-3d6e7f8c1b4a");
 
         public override string Description => "媒体库封面提取工具 - 为 .strm 流媒体文件自动提取视频关键帧作为封面图";
 

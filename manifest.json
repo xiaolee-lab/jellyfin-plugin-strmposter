@@ -1,6 +1,6 @@
-﻿﻿[
+﻿﻿﻿[
   {
-    "guid": "a1b2c3d4-e5f6-4a5b-8c9d-0e1f2a3b4c5d",
+    "guid": "b7e23c8a-9f5d-4c8b-91a2-3d6e7f8c1b4a",
     "name": "StrmPoster",
     "description": "Media library thumbnail extraction tool - Automatically extract video keyframes as thumbnails for .strm streaming files",
     "overview": "Automatically extract video keyframes as thumbnails for .strm files, support batch extraction and scheduled tasks",
