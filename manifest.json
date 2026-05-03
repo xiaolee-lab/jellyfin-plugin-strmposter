@@ -9,12 +9,12 @@
         "imageUrl":  "https://raw.githubusercontent.com/xiaolee-lab/jellyfin-plugin-strmposter/main/thumb.jpg",
         "versions":  [
                          {
-                             "changelog":  "v1.0.0",
-                             "version":  "1.0.0",
-                             "checksum":  "e76a07933a469f2c48bea03b6eecd90e",
-                             "timestamp":  "2026-05-03T02:53:44Z",
+                             "changelog":  "v1.0.0.0",
+                             "version":  "1.0.0.0",
+                             "checksum":  "93401ad713721ae361ce96ef3d4f97d1",
+                             "timestamp":  "2026-05-03T03:06:42Z",
                              "targetAbi":  "10.11.0.0",
-                             "sourceUrl":  "https://github.com/xiaolee-lab/jellyfin-plugin-strmposter/releases/download/v1.0.0/StrmPosterForJellyfin.zip"
+                             "sourceUrl":  "https://github.com/xiaolee-lab/jellyfin-plugin-strmposter/releases/download/v1.0.0.0/StrmPosterForJellyfin.zip"
                          }
                      ]
     }
