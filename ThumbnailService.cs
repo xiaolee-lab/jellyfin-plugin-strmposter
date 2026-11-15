@@ -66,17 +66,10 @@ namespace StrmPosterForJellyfin
             {
                 _logger.LogInformation("正在提取封面：{ItemName}", item.Name);
 
-                var mediaInfo = await _mediaEncoderAdapter.ExtractMediaInfoAsync(item, cancellationToken);
-                if (mediaInfo == null || mediaInfo.MediaStreams == null)
+                var mediaInfo = await _mediaEncoderAdapter.ProbeMediaAsync(item, cancellationToken);
+                if (mediaInfo?.Duration == null || mediaInfo.Duration.Value.TotalSeconds <= 0)
                 {
                     _logger.LogWarning("无法获取媒体信息：{ItemName}", item.Name);
-                    return false;
-                }
-
-                var duration = mediaInfo.RunTimeTicks ?? 0;
-                if (duration <= 0)
-                {
-                    _logger.LogWarning("无法获取视频时长：{ItemName}", item.Name);
                     return false;
                 }
 
@@ -84,7 +77,7 @@ namespace StrmPosterForJellyfin
                 var extractPercent = config?.ThumbnailExtractPositionPercent ?? 50;
                 extractPercent = Math.Max(5, Math.Min(95, extractPercent));
 
-                var positionSeconds = (double)duration / TimeSpan.TicksPerSecond * extractPercent / 100;
+                var positionSeconds = mediaInfo.Duration.Value.TotalSeconds * extractPercent / 100;
                 
                 var ffmpegPath = _mediaEncoderAdapter.GetFFmpegPath();
                 if (string.IsNullOrEmpty(ffmpegPath))

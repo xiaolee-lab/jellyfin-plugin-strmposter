@@ -1,128 +1,273 @@
 using System;
+using System.Diagnostics;
+using System.Globalization;
 using System.IO;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using Jellyfin.Data.Enums;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.MediaEncoding;
-using MediaBrowser.Model.Dlna;
-using MediaBrowser.Model.Dto;
-using MediaBrowser.Model.MediaInfo;
 using Microsoft.Extensions.Logging;
 
 namespace StrmPosterForJellyfin
 {
+    /// <summary>
+    /// 媒体探测结果。
+    /// </summary>
+    public class MediaProbeResult
+    {
+        /// <summary>
+        /// 实际可读取的媒体路径（本地文件路径或流媒体 URL）。
+        /// </summary>
+        public string Path { get; set; }
+
+        /// <summary>
+        /// 视频时长，探测失败时为 null。
+        /// </summary>
+        public TimeSpan? Duration { get; set; }
+    }
+
     public class MediaEncoderAdapter
     {
         private readonly IMediaEncoder _mediaEncoder;
         private readonly ILogger<MediaEncoderAdapter> _logger;
-        
+
         public MediaEncoderAdapter(IMediaEncoder mediaEncoder, ILogger<MediaEncoderAdapter> logger)
         {
             _mediaEncoder = mediaEncoder;
             _logger = logger;
         }
-        
-        public async Task<MediaSourceInfo> ExtractMediaInfoAsync(BaseItem item, CancellationToken cancellationToken = default)
+
+        public async Task<MediaProbeResult> ProbeMediaAsync(BaseItem item, CancellationToken cancellationToken = default)
         {
             try
             {
-                var path = item.Path;
-                if (string.IsNullOrEmpty(path))
+                var actualMediaPath = await ResolveMediaPathAsync(item, cancellationToken);
+                if (string.IsNullOrEmpty(actualMediaPath))
                 {
-                    _logger.LogWarning("项目 {ItemName} 路径无效", item.Name);
                     return null;
                 }
-                
-                string actualMediaPath = path;
-                MediaProtocol protocol = MediaProtocol.File;
-                
-                if (path.EndsWith(".strm", StringComparison.OrdinalIgnoreCase))
+
+                var duration = GetDurationFromItem(item);
+                if (duration == null)
                 {
-                    _logger.LogDebug("检测到 .strm 文件：{Path}，正在读取实际媒体地址", path);
-                    
-                    try
-                    {
-                        var strmContent = await File.ReadAllTextAsync(path, cancellationToken);
-                        var mediaUrl = strmContent.Trim();
-                        
-                        if (string.IsNullOrWhiteSpace(mediaUrl))
-                        {
-                            _logger.LogWarning(".strm 文件内容为空：{Path}", path);
-                            return null;
-                        }
-                        
-                        if (mediaUrl.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
-                            mediaUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase) ||
-                            mediaUrl.StartsWith("rtmp://", StringComparison.OrdinalIgnoreCase) ||
-                            mediaUrl.StartsWith("rtsp://", StringComparison.OrdinalIgnoreCase))
-                        {
-                            actualMediaPath = mediaUrl;
-                            protocol = MediaProtocol.Http;
-                            _logger.LogDebug("使用 HTTP 协议：{Url}", mediaUrl);
-                        }
-                        else if (File.Exists(mediaUrl))
-                        {
-                            actualMediaPath = mediaUrl;
-                            protocol = MediaProtocol.File;
-                            _logger.LogDebug("使用文件协议：{Path}", mediaUrl);
-                        }
-                        else
-                        {
-                            var strmDirectory = Path.GetDirectoryName(path);
-                            var relativePath = Path.Combine(strmDirectory ?? "", mediaUrl);
-                            
-                            if (File.Exists(relativePath))
-                            {
-                                actualMediaPath = relativePath;
-                                protocol = MediaProtocol.File;
-                                _logger.LogDebug("使用相对路径：{Path}", relativePath);
-                            }
-                            else
-                            {
-                                _logger.LogWarning("未找到 .strm 对应的媒体文件：{StrmPath}，内容：{MediaUrl}", path, mediaUrl);
-                                actualMediaPath = mediaUrl;
-                                protocol = MediaProtocol.Http;
-                            }
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "读取 .strm 文件失败：{Path}", path);
-                        return null;
-                    }
+                    duration = await ProbeDurationWithFFProbeAsync(actualMediaPath, cancellationToken);
                 }
-                
-                var request = new MediaInfoRequest
+
+                if (duration == null)
                 {
-                    MediaSource = new MediaSourceInfo
-                    {
-                        Path = actualMediaPath,
-                        Protocol = protocol,
-                        Id = item.Id.ToString("N")
-                    },
-                    MediaType = DlnaProfileType.Video
+                    _logger.LogWarning("无法获取视频时长：{ItemName}", item.Name);
+                    return null;
+                }
+
+                _logger.LogDebug("已探测媒体信息：{ItemName}，时长：{Duration}", item.Name, duration);
+
+                return new MediaProbeResult
+                {
+                    Path = actualMediaPath,
+                    Duration = duration
                 };
-                
-                var mediaInfo = await _mediaEncoder.GetMediaInfo(request, cancellationToken);
-                
-                _logger.LogDebug("已提取媒体信息：{ItemName}，包含 {StreamCount} 个流", 
-                    item.Name, mediaInfo.MediaStreams?.Count ?? 0);
-                
-                return mediaInfo;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "提取媒体信息失败：{ItemName}", item.Name);
+                _logger.LogError(ex, "探测媒体信息失败：{ItemName}", item.Name);
                 return null;
             }
         }
-        
+
+        private async Task<string> ResolveMediaPathAsync(BaseItem item, CancellationToken cancellationToken)
+        {
+            var path = item.Path;
+            if (string.IsNullOrEmpty(path))
+            {
+                _logger.LogWarning("项目 {ItemName} 路径无效", item.Name);
+                return null;
+            }
+
+            if (!path.EndsWith(".strm", StringComparison.OrdinalIgnoreCase))
+            {
+                return path;
+            }
+
+            _logger.LogDebug("检测到 .strm 文件：{Path}，正在读取实际媒体地址", path);
+
+            try
+            {
+                var strmContent = await File.ReadAllTextAsync(path, cancellationToken);
+                var mediaUrl = strmContent.Trim();
+
+                if (string.IsNullOrWhiteSpace(mediaUrl))
+                {
+                    _logger.LogWarning(".strm 文件内容为空：{Path}", path);
+                    return null;
+                }
+
+                if (mediaUrl.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+                    mediaUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase) ||
+                    mediaUrl.StartsWith("rtmp://", StringComparison.OrdinalIgnoreCase) ||
+                    mediaUrl.StartsWith("rtsp://", StringComparison.OrdinalIgnoreCase))
+                {
+                    _logger.LogDebug("使用流媒体地址：{Url}", mediaUrl);
+                    return mediaUrl;
+                }
+
+                if (File.Exists(mediaUrl))
+                {
+                    _logger.LogDebug("使用文件路径：{Path}", mediaUrl);
+                    return mediaUrl;
+                }
+
+                var strmDirectory = Path.GetDirectoryName(path);
+                var relativePath = Path.Combine(strmDirectory ?? string.Empty, mediaUrl);
+
+                if (File.Exists(relativePath))
+                {
+                    _logger.LogDebug("使用相对路径：{Path}", relativePath);
+                    return relativePath;
+                }
+
+                _logger.LogWarning("未找到 .strm 对应的媒体文件：{StrmPath}，内容：{MediaUrl}", path, mediaUrl);
+                return mediaUrl;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "读取 .strm 文件失败：{Path}", path);
+                return null;
+            }
+        }
+
+        private TimeSpan? GetDurationFromItem(BaseItem item)
+        {
+            var runTimeTicks = item.RunTimeTicks;
+            if (runTimeTicks.HasValue && runTimeTicks.Value > 0)
+            {
+                return TimeSpan.FromTicks(runTimeTicks.Value);
+            }
+
+            return null;
+        }
+
+        private async Task<TimeSpan?> ProbeDurationWithFFProbeAsync(string mediaPath, CancellationToken cancellationToken)
+        {
+            var ffprobePath = GetFFProbePath();
+            if (string.IsNullOrEmpty(ffprobePath))
+            {
+                _logger.LogWarning("未找到 FFprobe 路径");
+                return null;
+            }
+
+            try
+            {
+                var startInfo = new ProcessStartInfo
+                {
+                    FileName = ffprobePath,
+                    Arguments = $"-v quiet -print_format json -show_format -show_streams -i \"{mediaPath}\"",
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                    WindowStyle = ProcessWindowStyle.Hidden
+                };
+
+                using var process = new Process { StartInfo = startInfo };
+                process.Start();
+
+                var outputTask = process.StandardOutput.ReadToEndAsync(cancellationToken);
+                var errorTask = process.StandardError.ReadToEndAsync(cancellationToken);
+                await Task.WhenAll(outputTask, errorTask, process.WaitForExitAsync(cancellationToken));
+
+                var output = await outputTask;
+                if (process.ExitCode != 0 || string.IsNullOrWhiteSpace(output))
+                {
+                    _logger.LogWarning("FFprobe 执行失败，错误码：{ExitCode}，文件：{Path}", process.ExitCode, mediaPath);
+                    _logger.LogDebug("FFprobe 输出：{Output}", await errorTask);
+                    return null;
+                }
+
+                return ParseDurationFromFFProbeOutput(output);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "FFprobe 执行异常：{Path}", mediaPath);
+                return null;
+            }
+        }
+
+        private TimeSpan? ParseDurationFromFFProbeOutput(string json)
+        {
+            try
+            {
+                using var document = JsonDocument.Parse(json);
+                var root = document.RootElement;
+
+                if (root.TryGetProperty("format", out var format))
+                {
+                    var formatDuration = ParseSeconds(format, "duration");
+                    if (formatDuration.HasValue)
+                    {
+                        return formatDuration;
+                    }
+
+                    if (format.TryGetProperty("tags", out var tags))
+                    {
+                        foreach (var tag in tags.EnumerateObject())
+                        {
+                            if (tag.Name.Equals("DURATION", StringComparison.OrdinalIgnoreCase) &&
+                                TimeSpan.TryParse(tag.Value.GetString(), CultureInfo.InvariantCulture, out var tagDuration))
+                            {
+                                return tagDuration;
+                            }
+                        }
+                    }
+                }
+
+                if (root.TryGetProperty("streams", out var streams) && streams.ValueKind == JsonValueKind.Array)
+                {
+                    TimeSpan? longest = null;
+                    foreach (var stream in streams.EnumerateArray())
+                    {
+                        var streamDuration = ParseSeconds(stream, "duration");
+                        if (streamDuration.HasValue && (longest == null || streamDuration.Value > longest.Value))
+                        {
+                            longest = streamDuration;
+                        }
+                    }
+
+                    return longest;
+                }
+
+                return null;
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogWarning(ex, "解析 FFprobe 输出失败");
+                return null;
+            }
+        }
+
+        private static TimeSpan? ParseSeconds(JsonElement element, string propertyName)
+        {
+            if (!element.TryGetProperty(propertyName, out var property) || property.ValueKind != JsonValueKind.String)
+            {
+                return null;
+            }
+
+            if (double.TryParse(property.GetString(), NumberStyles.Float, CultureInfo.InvariantCulture, out var seconds) &&
+                seconds > 0 &&
+                !double.IsInfinity(seconds) &&
+                !double.IsNaN(seconds))
+            {
+                return TimeSpan.FromSeconds(seconds);
+            }
+
+            return null;
+        }
+
         public string GetFFmpegPath()
         {
             return _mediaEncoder.EncoderPath;
         }
-        
+
         public string GetFFProbePath()
         {
             return _mediaEncoder.ProbePath;

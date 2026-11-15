@@ -6,6 +6,13 @@
 
 为 .strm 流媒体文件自动提取视频关键帧作为封面图的 Jellyfin 插件
 
+## 🔖 版本兼容性
+
+| 插件版本 | Jellyfin 版本 | .NET |
+| --- | --- | --- |
+| 1.1.0.0 | 12.x | 10.0 |
+| 1.0.0.1 | 10.11.x | 9.0 |
+
 ## ✨ 功能特性
 
 - 🖼️ **图片获取器** - 在媒体库设置中选择 StrmPoster 作为图片获取器，刷新元数据时自动提取封面
@@ -68,8 +75,8 @@
 
 ### 环境要求
 
-- .NET 9.0 SDK
-- Jellyfin 10.11.8
+- .NET 10.0 SDK
+- Jellyfin 12.x
 
 ### 本地构建
 
@@ -82,7 +89,7 @@ cd jellyfin-plugin-strmposter
 dotnet build -c Release
 
 # 输出位置
-# bin/Release/net9.0/StrmPosterForJellyfin.dll
+# bin/Release/net10.0/StrmPosterForJellyfin.dll
 ```
 
 ## 📁 项目结构
