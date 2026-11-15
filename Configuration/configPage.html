@@ -33,6 +33,7 @@
                     </div>
                     <div id="libraryList" class="paperList" style="max-height: 300px; overflow-y: auto;">
                     </div>
+                    <div id="librarySelectionSummary" class="fieldDescription" style="margin-top: 8px;"></div>
                 </div>
 
                 <div class="verticalSection">
@@ -97,6 +98,22 @@
             }
         }
 
+        function updateLibrarySummary() {
+            const summaryEl = document.querySelector('#librarySelectionSummary');
+            const checkboxes = document.querySelectorAll('#libraryList input[type="checkbox"]');
+            if (!summaryEl || checkboxes.length === 0) {
+                if (summaryEl) {
+                    summaryEl.textContent = '';
+                }
+                return;
+            }
+
+            const selectedCount = document.querySelectorAll('#libraryList input[type="checkbox"]:checked').length;
+            summaryEl.textContent = selectedCount === 0
+                ? '未选择媒体库（将处理全部媒体库）'
+                : '已选择 ' + selectedCount + ' / ' + checkboxes.length + ' 个媒体库';
+        }
+
         function loadLibraryList(config) {
             const enabledLibraryIds = config.EnabledLibraryIds || [];
             const libraryListEl = document.querySelector('#libraryList');
@@ -109,6 +126,7 @@
 
                 if (folders.length === 0) {
                     libraryListEl.innerHTML = '<p style="padding: 10px;">未找到媒体库</p>';
+                    updateLibrarySummary();
                     return;
                 }
 
@@ -117,32 +135,33 @@
                     const name = folder.Name;
                     const isEnabled = enabledLibraryIds.includes(id.toString());
 
-                    const div = document.createElement('div');
-                    div.className = 'listItem';
-                    div.style.display = 'flex';
-                    div.style.alignItems = 'center';
-                    div.style.padding = '8px 12px';
+                    // 整行使用 label，点击文字即可切换；复选框使用原生样式，避免 emby-checkbox 被隐藏
+                    const row = document.createElement('label');
+                    row.className = 'listItem';
+                    row.style.cssText = 'display: flex; align-items: center; padding: 8px 12px; cursor: pointer;';
 
                     const checkbox = document.createElement('input');
                     checkbox.type = 'checkbox';
                     checkbox.checked = isEnabled;
-                    checkbox.className = 'emby-checkbox';
                     checkbox.dataset.libraryId = id;
                     checkbox.id = 'library_' + id;
+                    checkbox.style.cssText = 'position: static; width: 18px; height: 18px; margin: 0; opacity: 1; appearance: auto; accent-color: #00a4dc; cursor: pointer; flex: 0 0 auto;';
 
-                    const label = document.createElement('label');
-                    label.htmlFor = 'library_' + id;
-                    label.textContent = name;
-                    label.style.marginLeft = '8px';
-                    label.style.flex = '1';
+                    const labelText = document.createElement('span');
+                    labelText.textContent = name;
+                    labelText.style.cssText = 'margin-left: 8px; flex: 1;';
 
-                    div.appendChild(checkbox);
-                    div.appendChild(label);
-                    libraryListEl.appendChild(div);
+                    row.appendChild(checkbox);
+                    row.appendChild(labelText);
+                    libraryListEl.appendChild(row);
                 });
+
+                libraryListEl.onchange = updateLibrarySummary;
+                updateLibrarySummary();
             }).catch(function (err) {
                 console.error('加载媒体库失败:', err);
                 libraryListEl.innerHTML = '<p style="padding: 10px; color: #ff6b6b;">加载媒体库失败，请刷新页面重试</p>';
+                updateLibrarySummary();
             });
         }
 

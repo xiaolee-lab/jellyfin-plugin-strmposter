@@ -9,6 +9,14 @@
         "imageUrl":  "https://raw.githubusercontent.com/xiaolee-lab/jellyfin-plugin-strmposter/main/thumb.jpg",
         "versions":  [
                          {
+                             "changelog":  "v1.1.2.0 - 修复媒体库复选框不可见、无法点击的问题，并显示已选媒体库数量",
+                             "version":  "1.1.2.0",
+                             "checksum":  "8fe0cf9c46d494bb07b52060ffbb244a",
+                             "timestamp":  "2026-11-15T12:20:35Z",
+                             "targetAbi":  "12.0.0.0",
+                             "sourceUrl":  "https://github.com/xiaolee-lab/jellyfin-plugin-strmposter/releases/download/v1.1.2.0/StrmPosterForJellyfin.zip"
+                         },
+                         {
                              "changelog":  "v1.1.1.0 - 修复设置页媒体库列表为空；补注册计划任务；仅处理 .strm；进程执行与封面写入加固",
                              "version":  "1.1.1.0",
                              "checksum":  "dfa564c44417e7c34e314534dfcfa932",
