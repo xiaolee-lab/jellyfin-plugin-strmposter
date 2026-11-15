@@ -55,6 +55,12 @@ namespace StrmPosterForJellyfin
                     return response;
                 }
 
+                var config = JellyfinPlugin.Instance?.Configuration;
+                if (config != null && !config.EnableThumbnailExtraction)
+                {
+                    return response;
+                }
+
                 // 只处理 strm 文件
                 if (!(item.Path?.EndsWith(".strm", StringComparison.OrdinalIgnoreCase) ?? false))
                 {

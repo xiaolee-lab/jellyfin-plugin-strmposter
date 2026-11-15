@@ -1,5 +1,4 @@
 using System;
-using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Text.Json;
@@ -29,6 +28,8 @@ namespace StrmPosterForJellyfin
 
     public class MediaEncoderAdapter
     {
+        private static readonly TimeSpan ProbeTimeout = TimeSpan.FromSeconds(30);
+
         private readonly IMediaEncoder _mediaEncoder;
         private readonly ILogger<MediaEncoderAdapter> _logger;
 
@@ -42,17 +43,15 @@ namespace StrmPosterForJellyfin
         {
             try
             {
-                var actualMediaPath = await ResolveMediaPathAsync(item, cancellationToken);
+                var actualMediaPath = await ResolveMediaPathAsync(item, cancellationToken).ConfigureAwait(false);
                 if (string.IsNullOrEmpty(actualMediaPath))
                 {
                     return null;
                 }
 
-                var duration = GetDurationFromItem(item);
-                if (duration == null)
-                {
-                    duration = await ProbeDurationWithFFProbeAsync(actualMediaPath, cancellationToken);
-                }
+                // 优先使用媒体库已解析的时长，避免每次提取都启动 FFprobe
+                var duration = GetDurationFromItem(item) ??
+                               await ProbeDurationWithFFProbeAsync(actualMediaPath, cancellationToken).ConfigureAwait(false);
 
                 if (duration == null)
                 {
@@ -67,6 +66,10 @@ namespace StrmPosterForJellyfin
                     Path = actualMediaPath,
                     Duration = duration
                 };
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
             }
             catch (Exception ex)
             {
@@ -93,7 +96,7 @@ namespace StrmPosterForJellyfin
 
             try
             {
-                var strmContent = await File.ReadAllTextAsync(path, cancellationToken);
+                var strmContent = await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false);
                 var mediaUrl = strmContent.Trim();
 
                 if (string.IsNullOrWhiteSpace(mediaUrl))
@@ -107,7 +110,7 @@ namespace StrmPosterForJellyfin
                     mediaUrl.StartsWith("rtmp://", StringComparison.OrdinalIgnoreCase) ||
                     mediaUrl.StartsWith("rtsp://", StringComparison.OrdinalIgnoreCase))
                 {
-                    _logger.LogDebug("使用流媒体地址：{Url}", mediaUrl);
+                    _logger.LogDebug("使用流媒体地址：{Url}", ToLogPath(mediaUrl));
                     return mediaUrl;
                 }
 
@@ -126,8 +129,15 @@ namespace StrmPosterForJellyfin
                     return relativePath;
                 }
 
-                _logger.LogWarning("未找到 .strm 对应的媒体文件：{StrmPath}，内容：{MediaUrl}", path, mediaUrl);
+                _logger.LogWarning(
+                    "未找到 .strm 对应的媒体文件：{StrmPath}，内容：{MediaUrl}",
+                    path,
+                    ToLogPath(mediaUrl));
                 return mediaUrl;
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
             }
             catch (Exception ex)
             {
@@ -158,37 +168,43 @@ namespace StrmPosterForJellyfin
 
             try
             {
-                var startInfo = new ProcessStartInfo
+                var arguments = new[]
                 {
-                    FileName = ffprobePath,
-                    Arguments = $"-v quiet -print_format json -show_format -show_streams -i \"{mediaPath}\"",
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true,
-                    WindowStyle = ProcessWindowStyle.Hidden
+                    "-v", "quiet",
+                    "-print_format", "json",
+                    "-show_format",
+                    "-show_streams",
+                    "-i", mediaPath
                 };
 
-                using var process = new Process { StartInfo = startInfo };
-                process.Start();
+                var result = await ProcessRunner.RunAsync(ffprobePath, arguments, ProbeTimeout, cancellationToken)
+                    .ConfigureAwait(false);
 
-                var outputTask = process.StandardOutput.ReadToEndAsync(cancellationToken);
-                var errorTask = process.StandardError.ReadToEndAsync(cancellationToken);
-                await Task.WhenAll(outputTask, errorTask, process.WaitForExitAsync(cancellationToken));
-
-                var output = await outputTask;
-                if (process.ExitCode != 0 || string.IsNullOrWhiteSpace(output))
+                if (result.TimedOut)
                 {
-                    _logger.LogWarning("FFprobe 执行失败，错误码：{ExitCode}，文件：{Path}", process.ExitCode, mediaPath);
-                    _logger.LogDebug("FFprobe 输出：{Output}", await errorTask);
+                    _logger.LogWarning("FFprobe 探测超时：{Path}", ToLogPath(mediaPath));
                     return null;
                 }
 
-                return ParseDurationFromFFProbeOutput(output);
+                if (result.ExitCode != 0 || string.IsNullOrWhiteSpace(result.StandardOutput))
+                {
+                    _logger.LogWarning(
+                        "FFprobe 执行失败，错误码：{ExitCode}，文件：{Path}",
+                        result.ExitCode,
+                        ToLogPath(mediaPath));
+                    _logger.LogDebug("FFprobe 输出：{Output}", result.StandardError);
+                    return null;
+                }
+
+                return ParseDurationFromFFProbeOutput(result.StandardOutput);
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "FFprobe 执行异常：{Path}", mediaPath);
+                _logger.LogError(ex, "FFprobe 执行异常：{Path}", ToLogPath(mediaPath));
                 return null;
             }
         }
@@ -208,12 +224,14 @@ namespace StrmPosterForJellyfin
                         return formatDuration;
                     }
 
-                    if (format.TryGetProperty("tags", out var tags))
+                    if (format.TryGetProperty("tags", out var tags) && tags.ValueKind == JsonValueKind.Object)
                     {
                         foreach (var tag in tags.EnumerateObject())
                         {
                             if (tag.Name.Equals("DURATION", StringComparison.OrdinalIgnoreCase) &&
-                                TimeSpan.TryParse(tag.Value.GetString(), CultureInfo.InvariantCulture, out var tagDuration))
+                                tag.Value.ValueKind == JsonValueKind.String &&
+                                TimeSpan.TryParse(tag.Value.GetString(), CultureInfo.InvariantCulture, out var tagDuration) &&
+                                tagDuration > TimeSpan.Zero)
                             {
                                 return tagDuration;
                             }
@@ -254,6 +272,7 @@ namespace StrmPosterForJellyfin
 
             if (double.TryParse(property.GetString(), NumberStyles.Float, CultureInfo.InvariantCulture, out var seconds) &&
                 seconds > 0 &&
+                seconds < TimeSpan.MaxValue.TotalSeconds &&
                 !double.IsInfinity(seconds) &&
                 !double.IsNaN(seconds))
             {
@@ -261,6 +280,19 @@ namespace StrmPosterForJellyfin
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// 日志脱敏：流媒体 URL 只保留协议与主机，避免网关地址中的凭据泄露。
+        /// </summary>
+        private static string ToLogPath(string path)
+        {
+            if (Uri.TryCreate(path, UriKind.Absolute, out var uri) && !uri.IsFile)
+            {
+                return $"{uri.Scheme}://{uri.Host}";
+            }
+
+            return path;
         }
 
         public string GetFFmpegPath()

@@ -1,17 +1,20 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using MediaBrowser.Controller.Entities;
+using MediaBrowser.Model.Entities;
 using Microsoft.Extensions.Logging;
 
 namespace StrmPosterForJellyfin
 {
     public class ThumbnailService
     {
+        private static readonly TimeSpan FFmpegTimeout = TimeSpan.FromSeconds(60);
+
         private readonly MediaEncoderAdapter _mediaEncoderAdapter;
         private readonly ILogger<ThumbnailService> _logger;
 
@@ -23,6 +26,11 @@ namespace StrmPosterForJellyfin
 
         public bool NeedsExtraction(BaseItem item, bool forceReExtract = false)
         {
+            if (!IsStrmItem(item))
+            {
+                return false;
+            }
+
             if (forceReExtract)
             {
                 _logger.LogDebug("强制重提模式已启用：{ItemName}", item.Name);
@@ -30,7 +38,7 @@ namespace StrmPosterForJellyfin
             }
 
             var hasPrimaryImage = !string.IsNullOrEmpty(item.PrimaryImagePath) ||
-                                 item.ImageInfos.Any(i => i.Type == MediaBrowser.Model.Entities.ImageType.Primary);
+                                 item.ImageInfos.Any(i => i.Type == ImageType.Primary);
             if (hasPrimaryImage)
             {
                 return false;
@@ -57,28 +65,39 @@ namespace StrmPosterForJellyfin
             var directory = Path.GetDirectoryName(mediaPath);
             var fileNameWithoutExt = Path.GetFileNameWithoutExtension(mediaPath);
 
-            return Path.Combine(directory, fileNameWithoutExt + "-poster.jpg");
+            return Path.Combine(directory ?? string.Empty, fileNameWithoutExt + "-poster.jpg");
         }
 
         public async Task<bool> ExtractAndSaveThumbnailAsync(BaseItem item, CancellationToken cancellationToken = default)
         {
+            if (!IsStrmItem(item))
+            {
+                return false;
+            }
+
+            var config = JellyfinPlugin.Instance?.Configuration;
+            if (config != null && !config.EnableThumbnailExtraction)
+            {
+                _logger.LogDebug("封面提取功能已关闭，跳过：{ItemName}", item.Name);
+                return false;
+            }
+
             try
             {
                 _logger.LogInformation("正在提取封面：{ItemName}", item.Name);
 
-                var mediaInfo = await _mediaEncoderAdapter.ProbeMediaAsync(item, cancellationToken);
+                var mediaInfo = await _mediaEncoderAdapter.ProbeMediaAsync(item, cancellationToken).ConfigureAwait(false);
                 if (mediaInfo?.Duration == null || mediaInfo.Duration.Value.TotalSeconds <= 0)
                 {
                     _logger.LogWarning("无法获取媒体信息：{ItemName}", item.Name);
                     return false;
                 }
 
-                var config = JellyfinPlugin.Instance?.Configuration;
                 var extractPercent = config?.ThumbnailExtractPositionPercent ?? 50;
                 extractPercent = Math.Max(5, Math.Min(95, extractPercent));
 
                 var positionSeconds = mediaInfo.Duration.Value.TotalSeconds * extractPercent / 100;
-                
+
                 var ffmpegPath = _mediaEncoderAdapter.GetFFmpegPath();
                 if (string.IsNullOrEmpty(ffmpegPath))
                 {
@@ -99,18 +118,36 @@ namespace StrmPosterForJellyfin
                     Directory.CreateDirectory(outputDir);
                 }
 
-                var success = await ExtractThumbnailWithFFmpegAsync(mediaInfo.Path, outputPath, positionSeconds, ffmpegPath, cancellationToken);
+                // 先写入临时文件再原子替换，避免并发读取到不完整的封面
+                var tempPath = GetTempPath(outputPath);
 
-                if (success)
+                try
                 {
-                    _logger.LogInformation("封面提取成功：{ItemName} -> {Path}", item.Name, outputPath);
-                }
-                else
-                {
+                    var success = await ExtractThumbnailWithFFmpegAsync(
+                        mediaInfo.Path,
+                        tempPath,
+                        positionSeconds,
+                        ffmpegPath,
+                        cancellationToken).ConfigureAwait(false);
+
+                    if (success)
+                    {
+                        File.Move(tempPath, outputPath, true);
+                        _logger.LogInformation("封面提取成功：{ItemName} -> {Path}", item.Name, outputPath);
+                        return true;
+                    }
+
                     _logger.LogWarning("封面提取失败：{ItemName}", item.Name);
+                    return false;
                 }
-
-                return success;
+                finally
+                {
+                    TryDelete(tempPath);
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
             }
             catch (Exception ex)
             {
@@ -119,51 +156,55 @@ namespace StrmPosterForJellyfin
             }
         }
 
-        private async Task<bool> ExtractThumbnailWithFFmpegAsync(string inputPath, string outputPath, double positionSeconds, string ffmpegPath, CancellationToken cancellationToken)
+        private async Task<bool> ExtractThumbnailWithFFmpegAsync(
+            string inputPath,
+            string outputPath,
+            double positionSeconds,
+            string ffmpegPath,
+            CancellationToken cancellationToken)
         {
             try
             {
-                // 关键帧提取 - 使用 -skip_frame nokey 更快找到设置时间后寻找第一个关键帧，速度更快
-                var startInfo = new ProcessStartInfo
+                // 关键帧提取：跳过非关键帧，快速定位到目标时间点后的第一帧
+                var arguments = new[]
                 {
-                    FileName = ffmpegPath,
-                    Arguments = $"-skip_frame nokey -ss {positionSeconds:F2} -i \"{inputPath}\" -vframes 1 -q:v 2 -y \"{outputPath}\"",
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true,
-                    WindowStyle = ProcessWindowStyle.Hidden
+                    "-nostdin",
+                    "-hide_banner",
+                    "-loglevel", "error",
+                    "-skip_frame", "nokey",
+                    "-ss", positionSeconds.ToString("F2", CultureInfo.InvariantCulture),
+                    "-i", inputPath,
+                    "-frames:v", "1",
+                    "-q:v", "2",
+                    "-y",
+                    outputPath
                 };
 
-                using var process = new Process { StartInfo = startInfo };
-                process.Start();
+                var result = await ProcessRunner.RunAsync(ffmpegPath, arguments, FFmpegTimeout, cancellationToken)
+                    .ConfigureAwait(false);
 
-                var outputTask = process.StandardOutput.ReadToEndAsync(cancellationToken);
-                var errorTask = process.StandardError.ReadToEndAsync(cancellationToken);
-                await Task.WhenAll(outputTask, errorTask, process.WaitForExitAsync(cancellationToken));
-
-                if (process.ExitCode == 0 && File.Exists(outputPath))
+                if (result.TimedOut)
                 {
-                    var fileInfo = new FileInfo(outputPath);
-                    if (fileInfo.Length > 0)
-                    {
-                        return true;
-                    }
+                    _logger.LogWarning("FFmpeg 执行超时");
+                    return false;
                 }
 
-                _logger.LogWarning("FFmpeg 执行失败，错误码：{ExitCode}，文件：{Path}", process.ExitCode, inputPath);
-                _logger.LogDebug("FFmpeg 输出：{Output}", await errorTask);
-
-                if (File.Exists(outputPath))
+                if (result.ExitCode != 0)
                 {
-                    try { File.Delete(outputPath); } catch { }
+                    _logger.LogWarning("FFmpeg 执行失败，错误码：{ExitCode}", result.ExitCode);
+                    _logger.LogDebug("FFmpeg 输出：{Output}", result.StandardError);
+                    return false;
                 }
 
-                return false;
+                return File.Exists(outputPath) && new FileInfo(outputPath).Length > 0;
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "FFmpeg 执行异常：{Path}", inputPath);
+                _logger.LogError(ex, "FFmpeg 执行异常");
                 return false;
             }
         }
@@ -204,14 +245,21 @@ namespace StrmPosterForJellyfin
             {
                 try
                 {
-                    var success = await ExtractAndSaveThumbnailAsync(item, ct);
+                    var success = await ExtractAndSaveThumbnailAsync(item, ct).ConfigureAwait(false);
                     lock (lockObject)
                     {
-                        if (success) successCount++;
+                        if (success)
+                        {
+                            successCount++;
+                        }
+
                         processedCount++;
-                        var progressPercent = (double)processedCount / totalCount * 100;
-                        progress?.Report(progressPercent);
+                        progress?.Report((double)processedCount / totalCount * 100);
                     }
+                }
+                catch (OperationCanceledException)
+                {
+                    throw;
                 }
                 catch (Exception ex)
                 {
@@ -219,15 +267,42 @@ namespace StrmPosterForJellyfin
                     lock (lockObject)
                     {
                         processedCount++;
-                        var progressPercent = (double)processedCount / totalCount * 100;
-                        progress?.Report(progressPercent);
+                        progress?.Report((double)processedCount / totalCount * 100);
                     }
                 }
-            });
+            }).ConfigureAwait(false);
 
-            _logger.LogInformation("批量提取完成：成功 {Success}/{Total} 个，并发数：{Concurrency}",
+            _logger.LogInformation(
+                "批量提取完成：成功 {Success}/{Total} 个，并发数：{Concurrency}",
                 successCount, totalCount, concurrency);
             return successCount;
+        }
+
+        private static bool IsStrmItem(BaseItem item)
+        {
+            return item.Path?.EndsWith(".strm", StringComparison.OrdinalIgnoreCase) == true;
+        }
+
+        private static string GetTempPath(string outputPath)
+        {
+            var directory = Path.GetDirectoryName(outputPath);
+            var tempName = Path.GetFileNameWithoutExtension(outputPath) + ".tmp" + Path.GetExtension(outputPath);
+            return string.IsNullOrEmpty(directory) ? tempName : Path.Combine(directory, tempName);
+        }
+
+        private static void TryDelete(string path)
+        {
+            try
+            {
+                if (File.Exists(path))
+                {
+                    File.Delete(path);
+                }
+            }
+            catch
+            {
+                // 清理临时文件失败不影响主流程
+            }
         }
     }
 }

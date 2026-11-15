@@ -102,15 +102,17 @@
             const libraryListEl = document.querySelector('#libraryList');
             libraryListEl.innerHTML = '<p style="padding: 10px;">正在加载媒体库...</p>';
 
-            ApiClient.getVirtualFolders().then(function (folders) {
+            ApiClient.getVirtualFolders().then(function (result) {
+                // Jellyfin 的 /Library/VirtualFolders 接口直接返回数组
+                const folders = Array.isArray(result) ? result : ((result && result.Items) || []);
                 libraryListEl.innerHTML = '';
 
-                if (!folders || !folders.Items || folders.Items.length === 0) {
+                if (folders.length === 0) {
                     libraryListEl.innerHTML = '<p style="padding: 10px;">未找到媒体库</p>';
                     return;
                 }
 
-                folders.Items.forEach(function (folder) {
+                folders.forEach(function (folder) {
                     const id = folder.ItemId;
                     const name = folder.Name;
                     const isEnabled = enabledLibraryIds.includes(id.toString());
@@ -140,7 +142,7 @@
                 });
             }).catch(function (err) {
                 console.error('加载媒体库失败:', err);
-                libraryListEl.innerHTML = '<p style="padding: 10px; color: #ff6b6b;">加载媒体库失败</p>';
+                libraryListEl.innerHTML = '<p style="padding: 10px; color: #ff6b6b;">加载媒体库失败，请刷新页面重试</p>';
             });
         }
 
@@ -158,11 +160,14 @@
 
                     toggleForceReExtractVisibility(enableCheckbox.checked);
 
-                    enableCheckbox.addEventListener('change', function() {
+                    enableCheckbox.onchange = function() {
                         toggleForceReExtractVisibility(this.checked);
-                    });
+                    };
 
                     loadLibraryList(config);
+                }).catch(function (err) {
+                    console.error('加载插件配置失败:', err);
+                }).finally(function() {
                     Dashboard.hideLoadingMsg();
                 });
             });
@@ -171,8 +176,9 @@
             .addEventListener('submit', function(e) {
                 Dashboard.showLoadingMsg();
                 ApiClient.getPluginConfiguration(StrmPosterConfig.pluginUniqueId).then(function (config) {
-                    config.EnableThumbnailExtraction = document.querySelector('#enableThumbnailExtraction').checked;
-                    config.ForceReExtractThumbnail = document.querySelector('#forceReExtractThumbnail').checked;
+                    var enableChecked = document.querySelector('#enableThumbnailExtraction').checked;
+                    config.EnableThumbnailExtraction = enableChecked;
+                    config.ForceReExtractThumbnail = enableChecked && document.querySelector('#forceReExtractThumbnail').checked;
 
                     var thumbnailConcurrencyValue = parseInt(document.querySelector('#thumbnailConcurrency').value) || 2;
                     config.ThumbnailConcurrency = Math.max(1, Math.min(10, thumbnailConcurrencyValue));

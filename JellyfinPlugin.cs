@@ -8,6 +8,7 @@ using MediaBrowser.Controller.Plugins;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Plugins;
 using MediaBrowser.Model.Serialization;
+using MediaBrowser.Model.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -57,6 +58,7 @@ namespace StrmPosterForJellyfin
             serviceCollection.AddSingleton<MediaEncoderAdapter>();
             serviceCollection.AddSingleton<ThumbnailService>();
             serviceCollection.AddSingleton<IDynamicImageProvider, StrmPosterImageProvider>();
+            serviceCollection.AddSingleton<IScheduledTask, ExtractThumbnailTask>();
         }
     }
 }

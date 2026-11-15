@@ -37,54 +37,74 @@ namespace StrmPosterForJellyfin
 
         public async Task ExecuteAsync(IProgress<double> progress, CancellationToken cancellationToken)
         {
+            var config = JellyfinPlugin.Instance?.Configuration;
+            if (config != null && !config.EnableThumbnailExtraction)
+            {
+                _logger.LogInformation("封面提取功能已在插件设置中关闭，跳过任务");
+                return;
+            }
+
             _logger.LogInformation("开始执行封面提取任务");
 
             try
             {
-                var config = JellyfinPlugin.Instance?.Configuration;
                 var forceReExtract = config?.ForceReExtractThumbnail ?? false;
                 var enabledLibraryIds = config?.EnabledLibraryIds ?? Array.Empty<string>();
 
                 if (forceReExtract)
                 {
-                    _logger.LogWarning("强制重提模式已启用，将处理所有媒体项目");
+                    _logger.LogWarning("强制重提模式已启用，将处理所有 .strm 项目");
                 }
 
                 var query = new InternalItemsQuery
                 {
-                    IncludeItemTypes = new[] { BaseItemKind.Movie, BaseItemKind.Episode },
+                    IncludeItemTypes = new[] { BaseItemKind.Movie, BaseItemKind.Episode, BaseItemKind.Video },
                     Recursive = true,
                     IsVirtualItem = false
                 };
 
-                var allItems = _libraryManager.GetItemList(query);
-                _logger.LogInformation("媒体库中共有 {Count} 个视频项目", allItems.Count);
-
-                List<BaseItem> filteredItems;
                 if (enabledLibraryIds.Length > 0)
                 {
-                    filteredItems = allItems.Where(item =>
+                    var libraryIds = enabledLibraryIds
+                        .Select(id => Guid.TryParse(id, out var guid) ? guid : Guid.Empty)
+                        .Where(id => id != Guid.Empty)
+                        .Distinct()
+                        .ToArray();
+
+                    if (libraryIds.Length == 0)
                     {
-                        var libraryId = GetLibraryId(item);
-                        return enabledLibraryIds.Contains(libraryId.ToString(), StringComparer.OrdinalIgnoreCase);
-                    }).ToList();
-                    _logger.LogInformation("已筛选 {Count} 个项目，来源于 {LibCount} 个选定的媒体库",
-                        filteredItems.Count, enabledLibraryIds.Length);
+                        _logger.LogWarning("插件配置中的媒体库 ID 均无效，请重新选择媒体库");
+                        return;
+                    }
+
+                    // 在数据库查询层过滤，避免逐项回溯父级
+                    query.AncestorIds = libraryIds;
+                    _logger.LogInformation("将处理 {LibCount} 个选定媒体库", libraryIds.Length);
                 }
                 else
                 {
-                    filteredItems = allItems.ToList();
                     _logger.LogInformation("未指定特定媒体库，将处理所有媒体库");
                 }
 
-                var itemsNeedingExtraction = filteredItems
+                var allItems = _libraryManager.GetItemList(query);
+
+                var strmItems = allItems
+                    .Where(item => item.Path?.EndsWith(".strm", StringComparison.OrdinalIgnoreCase) == true)
+                    .ToList();
+
+                _logger.LogInformation("媒体库中共有 {Count} 个 .strm 项目", strmItems.Count);
+
+                var itemsNeedingExtraction = strmItems
                     .Where(item => _thumbnailService.NeedsExtraction(item, forceReExtract))
                     .ToList();
 
-                _logger.LogInformation("发现 {Count} 个项目需要提取封面（强制模式：{Force}）",
+                _logger.LogInformation(
+                    "发现 {Count} 个项目需要提取封面（强制模式：{Force}）",
                     itemsNeedingExtraction.Count, forceReExtract);
 
-                await _thumbnailService.BatchExtractThumbnailsAsync(itemsNeedingExtraction, progress, cancellationToken);
+                await _thumbnailService
+                    .BatchExtractThumbnailsAsync(itemsNeedingExtraction, progress, cancellationToken)
+                    .ConfigureAwait(false);
 
                 if (forceReExtract && config != null)
                 {
@@ -95,25 +115,15 @@ namespace StrmPosterForJellyfin
 
                 _logger.LogInformation("封面提取任务执行完成");
             }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "执行封面提取任务时发生错误");
                 throw;
             }
-        }
-
-        private Guid GetLibraryId(BaseItem item)
-        {
-            var current = item;
-            while (current != null)
-            {
-                if (current.GetType().Name == "CollectionFolder")
-                {
-                    return current.Id;
-                }
-                current = current.GetParent();
-            }
-            return Guid.Empty;
         }
 
         public IEnumerable<TaskTriggerInfo> GetDefaultTriggers()
